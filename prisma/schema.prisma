@@ -1,0 +1,266 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  FARMER
+  BUYER
+  ADMIN
+}
+
+model User {
+  id               String            @id @default(cuid())
+  mobile           String            @unique
+  name             String?
+  role             UserRole          @default(FARMER)
+  language         String            @default("en") // "en" | "te"
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  farmerProfile    FarmerProfile?
+  buyerProfile     BuyerProfile?
+  otpVerifications OTPVerification[]
+  marketplaceProducts MarketplaceProduct[]
+  buyerRequests    BuyerRequest[]    @relation("BuyerRequests")
+  receivedRequests BuyerRequest[]    @relation("FarmerReceivedRequests")
+  diseasePredictions DiseasePrediction[]
+  fertilizerRecommendations FertilizerRecommendation[]
+  aiConversations  AiConversation[]
+  voiceCalls       VoiceCall[]
+  notifications    Notification[]
+}
+
+model OTPVerification {
+  id         String   @id @default(cuid())
+  mobile     String
+  codeHash   String
+  attempts   Int      @default(0)
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  user       User?    @relation(fields: [userId], references: [id])
+  userId     String?
+
+  @@index([mobile])
+}
+
+model FarmerProfile {
+  id              String   @id @default(cuid())
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId          String   @unique
+  location        String?  // e.g. "Anantapur, Andhra Pradesh"
+  village         String?
+  district        String?
+  state           String?  @default("Andhra Pradesh")
+  landSize        Float?   @default(3.0)
+  landUnit        String?  @default("Acres") // Acres, Guntas, Bigha, Hectare
+  soilType        String?  @default("Red Loamy Soil")
+  soilPh          Float?   @default(6.5)
+  nitrogen        Float?   @default(210.0) // kg/ha or rating
+  phosphorus      Float?   @default(18.0)
+  potassium       Float?   @default(140.0)
+  waterSource     String?  @default("Borewell + Rainfed") // Canal, Borewell, Rainfed, River
+  irrigation      Boolean? @default(true)
+  irrigationType  String?  @default("Drip Irrigation") // Drip, Sprinkler, Flood, Rainfed
+  currentCrop     String?  @default("Groundnut")
+  previousCrops   String?  @default("Paddy, Maize")
+  experienceYears Int?     @default(12)
+  preferredCrops  String?  @default("Groundnut, Cotton, Chilli")
+  budget          Float?   @default(45000.0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model BuyerProfile {
+  id             String   @id @default(cuid())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String   @unique
+  companyName    String?
+  businessType   String?  @default("Wholesale Trader") // Processor, Exporter, Retailer, Mandi Trader
+  location       String?
+  district       String?
+  state          String?
+  gstNumber      String?
+  preferredCrops String?  @default("Groundnut, Cotton, Maize, Chilli")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model CropData {
+  id                 String   @id @default(cuid())
+  name               String   @unique
+  teluguName         String?
+  hindiName          String?
+  category           String?  // Oilseeds, Cereals, Cash Crops, Pulses, Vegetables
+  season             String   // Kharif, Rabi, Zaid, All Season
+  soilTypes          String   // Comma-separated or description
+  minPh              Float    @default(5.5)
+  maxPh              Float    @default(7.5)
+  nReqKgPerAcre      Float
+  pReqKgPerAcre      Float
+  kReqKgPerAcre      Float
+  waterReqMm         Float
+  durationDays       Int
+  avgYieldKgPerAcre  Float
+  basePricePerKg     Float
+  riskFactors        String?
+  description        String?
+  createdAt          DateTime @default(now())
+}
+
+model MarketPrice {
+  id             String   @id @default(cuid())
+  cropName       String
+  marketLocation String   // Mandi Name e.g. "Anantapur Mandi"
+  district       String
+  state          String
+  pricePerKg     Float
+  minPrice       Float
+  maxPrice       Float
+  priceTrend     String   @default("Rising") // Rising, Falling, Stable
+  demandLevel    String   @default("HIGH")   // HIGH, MODERATE, LOW
+  date           DateTime @default(now())
+  isDemo         Boolean  @default(true)
+
+  @@index([cropName, district])
+}
+
+model FertilizerProduct {
+  id               String   @id @default(cuid())
+  name             String
+  npkRatio         String   // e.g. "46-0-0" for Urea, "18-46-0" for DAP
+  type             String   // Chemical, Organic, Biofertilizer, Micronutrient
+  pricePerBag50kg  Float
+  unit             String   @default("50kg Bag")
+  applicationGuide String?
+  safetyNotes      String?
+  createdAt        DateTime @default(now())
+}
+
+model FertilizerRecommendation {
+  id                     String   @id @default(cuid())
+  farmerId               String
+  farmer                 User     @relation(fields: [farmerId], references: [id])
+  crop                   String
+  landSize               Float
+  growthStage            String   // Sowing, Vegetative, Flowering, Pod Development, Harvest
+  recommendedFertilizers Json     // array of { name, doseKgPerAcre, totalKg, bags, estimatedCost }
+  totalCost              Float
+  guidance               String?
+  safetyDisclaimer       String   @default("AI recommendations are guidance only. Confirm fertilizer application with a qualified agricultural expert or soil-test recommendation.")
+  createdAt              DateTime @default(now())
+}
+
+model DiseasePrediction {
+  id               String   @id @default(cuid())
+  farmerId         String
+  farmer           User     @relation(fields: [farmerId], references: [id])
+  imageUrl         String?
+  disease          String
+  confidence       Float
+  symptoms         String
+  cause            String
+  prevention       String
+  treatment        String
+  organicTreatment String?
+  isDemo           Boolean  @default(true)
+  disclaimer       String   @default("This is an AI-assisted indication. Confirm with a qualified agricultural expert when necessary.")
+  createdAt        DateTime @default(now())
+}
+
+model MarketplaceProduct {
+  id          String         @id @default(cuid())
+  farmerId    String
+  farmer      User           @relation(fields: [farmerId], references: [id])
+  crop        String
+  variety     String?
+  quantity    Float
+  unit        String         @default("kg") // kg, Quintal, Ton
+  price       Float          // price per unit in INR
+  location    String
+  district    String?
+  state       String?
+  harvestDate DateTime?
+  description String?
+  imageUrl    String?
+  status      String         @default("ACTIVE") // ACTIVE, PENDING_SALE, SOLD, ARCHIVED
+  requests    BuyerRequest[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model BuyerRequest {
+  id           String             @id @default(cuid())
+  productId    String
+  product      MarketplaceProduct @relation(fields: [productId], references: [id])
+  buyerId      String
+  buyer        User               @relation("BuyerRequests", fields: [buyerId], references: [id])
+  farmerId     String
+  farmer       User               @relation("FarmerReceivedRequests", fields: [farmerId], references: [id])
+  quantity     Float
+  offeredPrice Float
+  message      String?
+  status       String             @default("PENDING") // PENDING, ACCEPTED, REJECTED, NEGOTIATING, COMPLETED
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // WEATHER, MARKET, FERTILIZER, DISEASE, BUYER_REQUEST, VOICE_CALL
+  isRead    Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
+model VoiceCall {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  callerMobile String
+  callSid      String   @default(cuid())
+  direction    String   @default("INBOUND") // INBOUND (Farmer -> AI) | OUTBOUND (AI -> Farmer)
+  status       String   @default("COMPLETED") // QUEUED, RINGING, IN_PROGRESS, COMPLETED, FAILED
+  duration     Int      @default(45) // seconds
+  dtmfInput    String?  // DTMF key pressed e.g. "1", "4", "0"
+  intent       String?  // MARKET_PRICE, WEATHER, FERTILIZER, CROP_REC, DISEASE, TALK_AI
+  transcript   String?
+  summary      String?
+  audioUrl     String?
+  sentiment    String?  @default("Neutral")
+  createdAt    DateTime @default(now())
+}
+
+model WeatherData {
+  id              String   @id @default(cuid())
+  location        String
+  district        String
+  state           String
+  temperature     Float
+  humidity        Float
+  rainProbability Float
+  weatherAlert    String?
+  riskLevel       String   @default("LOW") // LOW, MODERATE, HIGH, SEVERE
+  forecastJson    Json?    // 5-day forecast data
+  date            DateTime @default(now())
+  isDemo          Boolean  @default(true)
+}
+
+model AiConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  messages  Json     // Array of { role: "user" | "assistant", content: string, timestamp: string }
+  context   String?  // Context tags
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
