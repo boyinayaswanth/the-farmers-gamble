@@ -30,28 +30,133 @@ export default function DiseaseScanner() {
     {
       title: 'Groundnut Leaf with Tikka Spots',
       crop: 'Groundnut',
-      url: 'https://images.unsplash.com/photo-1597848212624-a19eb35e2651?auto=format&fit=crop&w=600&q=80',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="100%">
+          <defs>
+            <radialGradient id="bgG" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#14532d"/>
+              <stop offset="100%" stop-color="#052e16"/>
+            </radialGradient>
+            <radialGradient id="tikkaSpot" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#271506"/>
+              <stop offset="50%" stop-color="#451a03"/>
+              <stop offset="85%" stop-color="#eab308"/>
+              <stop offset="100%" stop-color="transparent"/>
+            </radialGradient>
+          </defs>
+          <rect width="300" height="200" fill="url(#bgG)"/>
+          <!-- Groundnut Leaf Shape -->
+          <path d="M150 20 C220 50 240 140 150 185 C60 140 80 50 150 20 Z" fill="#22c55e" stroke="#15803d" stroke-width="3"/>
+          <path d="M150 20 Q150 100 150 185" stroke="#166534" stroke-width="2.5" fill="none"/>
+          <path d="M150 60 Q185 50 210 70" stroke="#166534" stroke-width="1.5" fill="none"/>
+          <path d="M150 60 Q115 50 90 70" stroke="#166534" stroke-width="1.5" fill="none"/>
+          <path d="M150 110 Q190 100 220 120" stroke="#166534" stroke-width="1.5" fill="none"/>
+          <path d="M150 110 Q110 100 80 120" stroke="#166534" stroke-width="1.5" fill="none"/>
+          <!-- Tikka Necrotic Spots with Yellow Halo -->
+          <circle cx="120" cy="80" r="18" fill="url(#tikkaSpot)"/>
+          <circle cx="180" cy="110" r="22" fill="url(#tikkaSpot)"/>
+          <circle cx="140" cy="140" r="15" fill="url(#tikkaSpot)"/>
+          <circle cx="195" cy="70" r="12" fill="url(#tikkaSpot)"/>
+          <circle cx="105" cy="130" r="14" fill="url(#tikkaSpot)"/>
+          <!-- Text Label -->
+          <rect x="10" y="10" width="130" height="22" rx="6" fill="rgba(0,0,0,0.6)"/>
+          <text x="18" y="25" fill="#fef08a" font-family="sans-serif" font-size="11" font-weight="bold">🥜 Tikka Leaf Spots</text>
+        </svg>
+      `)}`,
       label: 'Groundnut Tikka Spots',
       badge: 'Fungal Spot'
     },
     {
       title: 'Chilli Leaf Curl & Pest Vector',
       crop: 'Chilli',
-      url: 'https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=600&q=80',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="100%">
+          <defs>
+            <linearGradient id="bgC" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#1e1b4b"/>
+              <stop offset="100%" stop-color="#0f172a"/>
+            </linearGradient>
+          </defs>
+          <rect width="300" height="200" fill="url(#bgC)"/>
+          <!-- Puckered / Curled Chilli Leaf -->
+          <path d="M150 15 C200 30 220 90 205 135 C190 170 170 185 150 190 C130 185 110 170 95 135 C80 90 100 30 150 15 Z" fill="#84cc16" stroke="#4d7c0f" stroke-width="3"/>
+          <!-- Leaf Curled Wrinkles & Puckering -->
+          <path d="M150 15 Q155 100 150 190" stroke="#3f6212" stroke-width="2.5" fill="none"/>
+          <path d="M130 60 Q150 75 175 60" stroke="#facc15" stroke-width="2" fill="none"/>
+          <path d="M115 100 Q150 120 185 95" stroke="#facc15" stroke-width="2.5" fill="none"/>
+          <path d="M125 140 Q150 155 175 135" stroke="#facc15" stroke-width="2" fill="none"/>
+          <!-- Insect Vector Dots (Thrips / Whiteflies) -->
+          <circle cx="160" cy="70" r="3" fill="#f87171"/>
+          <circle cx="135" cy="115" r="3.5" fill="#f87171"/>
+          <circle cx="170" cy="125" r="3" fill="#f87171"/>
+          <circle cx="145" cy="150" r="3" fill="#f87171"/>
+          <!-- Text Label -->
+          <rect x="10" y="10" width="130" height="22" rx="6" fill="rgba(0,0,0,0.6)"/>
+          <text x="18" y="25" fill="#fca5a5" font-family="sans-serif" font-size="11" font-weight="bold">🌶️ Chilli Leaf Curl</text>
+        </svg>
+      `)}`,
       label: 'Chilli Leaf Curl',
       badge: 'Viral Vector'
     },
     {
       title: 'Tomato Leaf with Early Blight',
       crop: 'Tomato',
-      url: 'https://images.unsplash.com/photo-1592417817098-8f3d6910985b?auto=format&fit=crop&w=600&q=80',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="100%">
+          <defs>
+            <radialGradient id="bgT" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#3b0764"/>
+              <stop offset="100%" stop-color="#09090b"/>
+            </radialGradient>
+          </defs>
+          <rect width="300" height="200" fill="url(#bgT)"/>
+          <!-- Serrated Tomato Leaflet -->
+          <path d="M150 15 L165 45 L190 40 L180 70 L210 75 L185 105 L215 120 L175 145 L150 185 L125 145 L85 120 L115 105 L90 75 L120 70 L110 40 L135 45 Z" fill="#15803d" stroke="#166534" stroke-width="2.5"/>
+          <path d="M150 15 L150 185" stroke="#14532d" stroke-width="2.5"/>
+          <!-- Concentric Bullseye Alternaria Rings -->
+          <ellipse cx="135" cy="85" rx="20" ry="15" fill="#78350f" stroke="#f59e0b" stroke-width="2"/>
+          <ellipse cx="135" cy="85" rx="12" ry="9" fill="#451a03" stroke="#d97706" stroke-width="1.5"/>
+          <ellipse cx="135" cy="85" rx="5" ry="4" fill="#1c1917"/>
+          <!-- Secondary Blight Lesion -->
+          <ellipse cx="170" cy="130" rx="16" ry="12" fill="#78350f" stroke="#f59e0b" stroke-width="2"/>
+          <ellipse cx="170" cy="130" rx="9" ry="7" fill="#451a03"/>
+          <!-- Text Label -->
+          <rect x="10" y="10" width="140" height="22" rx="6" fill="rgba(0,0,0,0.6)"/>
+          <text x="18" y="25" fill="#fdba74" font-family="sans-serif" font-size="11" font-weight="bold">🍅 Tomato Early Blight</text>
+        </svg>
+      `)}`,
       label: 'Tomato Early Blight',
       badge: 'Alternaria'
     },
     {
       title: 'Healthy Green Leaf Canopy',
       crop: 'Groundnut',
-      url: 'https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?auto=format&fit=crop&w=600&q=80',
+      url: `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="100%">
+          <defs>
+            <radialGradient id="bgH" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#064e3b"/>
+              <stop offset="100%" stop-color="#022c22"/>
+            </radialGradient>
+          </defs>
+          <rect width="300" height="200" fill="url(#bgH)"/>
+          <!-- Vibrant Healthy Leaf Group -->
+          <path d="M150 15 C210 40 230 130 150 180 C70 130 90 40 150 15 Z" fill="#10b981" stroke="#059669" stroke-width="3"/>
+          <path d="M150 15 Q150 95 150 180" stroke="#047857" stroke-width="2.5" fill="none"/>
+          <path d="M150 50 Q180 40 205 60" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <path d="M150 50 Q120 40 95 60" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <path d="M150 95 Q185 85 215 105" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <path d="M150 95 Q115 85 85 105" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <path d="M150 140 Q180 130 200 150" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <path d="M150 140 Q120 130 100 150" stroke="#047857" stroke-width="1.5" fill="none"/>
+          <!-- Sparkles of Health -->
+          <circle cx="130" cy="70" r="2" fill="#a7f3d0"/>
+          <circle cx="170" cy="110" r="2.5" fill="#a7f3d0"/>
+          <!-- Text Label -->
+          <rect x="10" y="10" width="145" height="22" rx="6" fill="rgba(0,0,0,0.6)"/>
+          <text x="18" y="25" fill="#6ee7b7" font-family="sans-serif" font-size="11" font-weight="bold">🌿 Healthy Green Leaf</text>
+        </svg>
+      `)}`,
       label: 'Healthy Green Canopy',
       badge: 'Optimal Health'
     }
