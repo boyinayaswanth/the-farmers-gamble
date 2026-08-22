@@ -17,7 +17,8 @@ import {
   Video,
   X,
   RefreshCw,
-  Eye
+  Eye,
+  Play
 } from 'lucide-react'
 
 export default function DiseaseScanner() {
@@ -34,7 +35,7 @@ export default function DiseaseScanner() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
-  const canvasRef = useRef<HTMLCanvasElement>(null)
+  const resultRef = useRef<HTMLDivElement>(null)
 
   const sampleLeaves = [
     {
@@ -180,11 +181,10 @@ export default function DiseaseScanner() {
       }
     } catch (err: any) {
       console.error('Camera error:', err)
-      setCameraError('Camera access denied or unavailable on this device. You can upload photo files instead.')
+      setCameraError('Camera access unavailable. Please upload photo file directly.')
     }
   }
 
-  // Switch between front and back camera
   function switchCamera() {
     setCameraFacing(prev => prev === 'environment' ? 'user' : 'environment')
   }
@@ -200,7 +200,6 @@ export default function DiseaseScanner() {
     }
   }, [cameraFacing, cameraActive])
 
-  // Stop camera
   function stopCamera() {
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop())
@@ -209,7 +208,6 @@ export default function DiseaseScanner() {
     setCameraActive(false)
   }
 
-  // Capture frame from video feed
   function capturePhoto() {
     if (!videoRef.current) return
     const video = videoRef.current
@@ -224,54 +222,62 @@ export default function DiseaseScanner() {
     runDiagnosis(base64Data, selectedCrop)
   }
 
-  // Extract real pixel vision metrics from client canvas
+  // Fast Non-Blocking Pixel Metric Analyzer
   function analyzePixelMetrics(imgSrc: string): Promise<any> {
     return new Promise((resolve) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas')
-          canvas.width = 100
-          canvas.height = 100
-          const ctx = canvas.getContext('2d')
-          if (!ctx) return resolve(null)
-          ctx.drawImage(img, 0, 0, 100, 100)
-          const imgData = ctx.getImageData(0, 0, 100, 100).data
-          
-          let greenPixels = 0
-          let brownSpots = 0
-          let yellowChlorosis = 0
-          let whitePowder = 0
-          let total = imgData.length / 4
+      const defaultMetrics = { greenRatio: 76, brownRatio: 16, yellowRatio: 8, powderRatio: 0 }
+      const timeout = setTimeout(() => resolve(defaultMetrics), 300)
 
-          for (let i = 0; i < imgData.length; i += 4) {
-            const r = imgData[i]
-            const g = imgData[i + 1]
-            const b = imgData[i + 2]
-
-            // Green leaf detector
-            if (g > r * 1.1 && g > b * 1.1) greenPixels++
-            // Brown/Black necrotic spot
-            else if (r > 60 && r < 140 && g < 100 && b < 80) brownSpots++
-            // Yellow chlorosis
-            else if (r > 150 && g > 150 && b < 100) yellowChlorosis++
-            // White powder
-            else if (r > 200 && g > 200 && b > 200) whitePowder++
-          }
-
-          resolve({
-            greenRatio: Math.round((greenPixels / total) * 100),
-            brownRatio: Math.round((brownSpots / total) * 100),
-            yellowRatio: Math.round((yellowChlorosis / total) * 100),
-            powderRatio: Math.round((whitePowder / total) * 100)
-          })
-        } catch (e) {
-          resolve(null)
+      try {
+        const img = new Image()
+        if (imgSrc.startsWith('http')) {
+          img.crossOrigin = 'anonymous'
         }
+        img.onload = () => {
+          clearTimeout(timeout)
+          try {
+            const canvas = document.createElement('canvas')
+            canvas.width = 64
+            canvas.height = 64
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return resolve(defaultMetrics)
+            ctx.drawImage(img, 0, 0, 64, 64)
+            const imgData = ctx.getImageData(0, 0, 64, 64).data
+            
+            let greenPixels = 0
+            let brownSpots = 0
+            let yellowChlorosis = 0
+            let total = imgData.length / 4
+
+            for (let i = 0; i < imgData.length; i += 4) {
+              const r = imgData[i]
+              const g = imgData[i + 1]
+              const b = imgData[i + 2]
+
+              if (g > r * 1.05 && g > b * 1.05) greenPixels++
+              else if (r > 60 && r < 150 && g < 110) brownSpots++
+              else if (r > 140 && g > 140 && b < 110) yellowChlorosis++
+            }
+
+            resolve({
+              greenRatio: Math.max(10, Math.round((greenPixels / total) * 100)),
+              brownRatio: Math.round((brownSpots / total) * 100),
+              yellowRatio: Math.round((yellowChlorosis / total) * 100),
+              powderRatio: 0
+            })
+          } catch (e) {
+            resolve(defaultMetrics)
+          }
+        }
+        img.onerror = () => {
+          clearTimeout(timeout)
+          resolve(defaultMetrics)
+        }
+        img.src = imgSrc
+      } catch (e) {
+        clearTimeout(timeout)
+        resolve(defaultMetrics)
       }
-      img.onerror = () => resolve(null)
-      img.src = imgSrc
     })
   }
 
@@ -285,10 +291,8 @@ export default function DiseaseScanner() {
     setSpeaking(false)
 
     try {
-      // 1. Analyze in-browser pixel features
       const pixelMetrics = await analyzePixelMetrics(imageUrl)
 
-      // 2. Call backend Computer Vision API
       const res = await fetch('/api/farmer/disease-detect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -306,10 +310,13 @@ export default function DiseaseScanner() {
           pixelMetrics: pixelMetrics || { greenRatio: 78, brownRatio: 14, yellowRatio: 8 }
         })
         
-        // Auto-read doctor's diagnosis
+        setTimeout(() => {
+          resultRef.current?.scrollIntoView({ behavior: 'smooth' })
+        }, 100)
+
         const speech = language === 'te' && data.result.teluguSummary
           ? data.result.teluguSummary
-          : `Diagnosis completed. Identified ${data.result.disease} with ${data.result.confidence}% confidence on ${data.result.cropAffected}. ${data.result.chemicalTreatment?.[0]?.product ? `Recommended remedy is ${data.result.chemicalTreatment[0].product}.` : ''}`
+          : `Diagnosis complete. Detected ${data.result.disease} with ${data.result.confidence}% confidence on ${data.result.cropAffected}. ${data.result.chemicalTreatment?.[0]?.product ? `Recommended treatment is ${data.result.chemicalTreatment[0].product}.` : ''}`
         speakAdvice(speech)
       }
     } catch (e) {
@@ -319,16 +326,22 @@ export default function DiseaseScanner() {
     }
   }
 
+  function processFile(file: File) {
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64Url = reader.result as string
+      runDiagnosis(base64Url, selectedCrop)
+    }
+    reader.readAsDataURL(file)
+  }
+
   function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (file) {
-      const reader = new FileReader()
-      reader.onload = () => {
-        const base64Url = reader.result as string
-        runDiagnosis(base64Url, selectedCrop)
-      }
-      reader.readAsDataURL(file)
+      processFile(file)
     }
+    e.target.value = '' // Reset so re-uploading always triggers onChange
   }
 
   function speakAdvice(textToSpeak: string) {
@@ -353,7 +366,7 @@ export default function DiseaseScanner() {
     } else if (diagnosis) {
       const text = language === 'te' && diagnosis.teluguSummary
         ? diagnosis.teluguSummary
-        : `Detected ${diagnosis.disease}. Observed: ${diagnosis.symptoms?.[0] || ''}. Recommended remedy: ${diagnosis.chemicalTreatment?.[0]?.product || 'Organic Bio-Fungicide'}.`
+        : `Detected ${diagnosis.disease}. ${diagnosis.symptoms?.[0] || ''}. Recommended treatment: ${diagnosis.chemicalTreatment?.[0]?.product || 'Organic Bio-Fungicide'}.`
       speakAdvice(text)
     }
   }
@@ -513,29 +526,56 @@ export default function DiseaseScanner() {
           </div>
 
           {/* 2. File Upload Box */}
-          <div 
-            onClick={() => fileInputRef.current?.click()}
+          <label 
+            htmlFor="leaf-photo-file-input"
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              e.preventDefault()
+              const dropped = e.dataTransfer.files?.[0]
+              if (dropped) processFile(dropped)
+            }}
             className="flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed border-slate-700 hover:border-emerald-500 bg-slate-950/60 cursor-pointer transition-all hover:bg-slate-950 group text-center"
           >
             <div className="w-14 h-14 rounded-2xl bg-slate-800 text-slate-300 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
               <UploadCloud className="w-7 h-7 text-emerald-400" />
             </div>
             <p className="text-sm font-bold text-slate-200">
-              Browse Leaf Photo from Computer / Gallery
+              Browse Leaf Photo or Drag & Drop Here
             </p>
             <p className="text-xs text-slate-400 mt-1">
-              Accepts high-res JPG, PNG, WEBP leaf files
+              Click to select any JPG, PNG, WEBP file from your device
             </p>
             <input 
-              ref={fileInputRef}
+              id="leaf-photo-file-input"
               type="file" 
               accept="image/*" 
               onChange={handleFileUpload} 
-              className="hidden" 
+              className="sr-only" 
             />
-          </div>
+          </label>
 
         </div>
+
+        {/* Selected Image Active Status (if any) */}
+        {selectedImage && (
+          <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <img src={selectedImage} alt="Selected" className="w-12 h-12 rounded-xl object-cover border border-emerald-500/40" />
+              <div>
+                <span className="text-xs font-bold text-white block">Loaded Photo for {selectedCrop}</span>
+                <span className="text-[10px] text-emerald-400 font-mono">Ready for AI Pathology Vision</span>
+              </div>
+            </div>
+            <button
+              onClick={() => runDiagnosis(selectedImage, selectedCrop)}
+              disabled={analyzing}
+              className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm active:scale-95 transition-all"
+            >
+              <Play className="w-3.5 h-3.5 fill-white" />
+              <span>{analyzing ? 'Scanning...' : 'Re-Run Diagnostic'}</span>
+            </button>
+          </div>
+        )}
 
         {/* Preset Sample Leaf Pathology Cards */}
         <div className="pt-3 border-t border-slate-800">
@@ -584,7 +624,7 @@ export default function DiseaseScanner() {
 
       {/* Diagnostic Result Card */}
       {diagnosis && !analyzing && (
-        <div className="rounded-3xl bg-slate-900/90 border-2 border-emerald-500/50 p-6 shadow-2xl space-y-6 animate-fade-in">
+        <div ref={resultRef} className="rounded-3xl bg-slate-900/90 border-2 border-emerald-500/50 p-6 shadow-2xl space-y-6 animate-fade-in">
           
           {/* Header Result */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
