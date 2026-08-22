@@ -36,10 +36,18 @@ export default function PhoneSimulator() {
   const timerRef = useRef<any>(null)
   const recognitionRef = useRef<any>(null)
 
-  // Load authenticated user profile
+  // Load authenticated user profile & listen to outbound triggers
   useEffect(() => {
     async function loadUser() {
       try {
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem('tfg_user')
+          if (cached) {
+            const u = JSON.parse(cached)
+            if (u.name) setCallerName(`${u.name} (Groundnut Farmer, Anantapur)`)
+            if (u.mobile) setCallerMobile(u.mobile)
+          }
+        }
         const res = await fetch('/api/me')
         const data = await res.json()
         if (data.authenticated && data.user) {
@@ -51,7 +59,34 @@ export default function PhoneSimulator() {
       } catch (e) {}
     }
     loadUser()
-  }, [])
+
+    // Listen to external Outbound Call Triggers (from the 4 alert cards)
+    const handleOutboundTrigger = (e: any) => {
+      const { scenario, speechText, teluguSpeechText } = e.detail || {}
+      setCallState('CONNECTED')
+      const textToSpeak = (selectedLanguage === 'te' && teluguSpeechText) ? teluguSpeechText : (speechText || 'Urgent agricultural notice dispatched to your phone.')
+      
+      setTranscript(prev => [
+        ...prev,
+        {
+          role: 'SYSTEM',
+          text: `🚨 INCOMING OUTBOUND CALL from AgriAI Central Hotline (+91 80 4719 5000)...`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        },
+        {
+          role: 'AI',
+          text: `🚨 [PROACTIVE ALERT]: ${textToSpeak}`,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ])
+      speakText(textToSpeak)
+    }
+
+    window.addEventListener('trigger-outbound-call', handleOutboundTrigger)
+    return () => {
+      window.removeEventListener('trigger-outbound-call', handleOutboundTrigger)
+    }
+  }, [selectedLanguage, ttsEnabled])
 
   // Scroll transcript to bottom
   useEffect(() => {
@@ -110,7 +145,7 @@ export default function PhoneSimulator() {
         const data = await res.json()
         const greeting = selectedLanguage === 'te' && data.result?.teluguSpeechText
           ? data.result.teluguSpeechText
-          : data.result?.speechText || `Welcome to The Farmer's Gamble. Namaskaram ${callerName.split(' ')[0]}! We have loaded your 3-acre farm in Anantapur.\nPress 1 for Mandi Prices.\nPress 2 for Weather alerts.\nPress 3 for Crop recommendation.\nPress 4 for Fertilizer dosage.\nPress 5 for Plant disease.\nPress 6 for Marketplace.\nOr press 0 to speak naturally with AgriAI.`
+          : data.result?.speechText || `Namaskaram ${callerName.split(' ')[0]}! Welcome to The Farmer's Gamble toll-free hotline.\nPress 1 for Mandi Prices.\nPress 2 for Emergency Weather.\nPress 3 for Crop Suitability.\nPress 4 for Fertilizer dosage.\nPress 5 for Plant Disease.\nPress 6 for Marketplace.\nPress 7 for Govt Subsidies.\nOr press 0 to speak naturally with AgriAI.`
 
         setTranscript(prev => [
           ...prev,
@@ -129,7 +164,7 @@ export default function PhoneSimulator() {
         ])
         speakText(fallback)
       }
-    }, 1200)
+    }, 1000)
   }
 
   // End Call
@@ -155,13 +190,14 @@ export default function PhoneSimulator() {
     if (callState !== 'CONNECTED') return
 
     const keyLabels: Record<string, string> = {
-      '1': 'Pressed 1: Market Prices',
-      '2': 'Pressed 2: Weather & Storm Alerts',
-      '3': 'Pressed 3: AI Crop Recommendation',
-      '4': 'Pressed 4: Fertilizer Dosage',
-      '5': 'Pressed 5: Plant Disease Scanner',
-      '6': 'Pressed 6: Farm Marketplace',
-      '0': 'Pressed 0: Natural Voice Dialogue',
+      '1': 'Pressed 1: Mandi Prices & Selling Advice',
+      '2': 'Pressed 2: Emergency Weather & Storm Alerts',
+      '3': 'Pressed 3: AI Crop Suitability Advice',
+      '4': 'Pressed 4: Exact Fertilizer Bag Dosage',
+      '5': 'Pressed 5: Plant Disease & Leaf Cure',
+      '6': 'Pressed 6: Direct Farmgate Buyer Offers',
+      '7': 'Pressed 7: Government Subsidies & PM-KISAN',
+      '0': 'Pressed 0: Natural Voice Dialogue with AgriAI',
       '*': 'Pressed * (Back / Menu)',
       '#': 'Pressed # (Repeat)',
     }
@@ -269,7 +305,7 @@ export default function PhoneSimulator() {
   }
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+    <div id="phone-hardware-simulator" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
       
       {/* LEFT 5 COLS: 2G BASIC MOBILE PHONE HARDWARE SIMULATOR */}
       <div className="lg:col-span-5 flex justify-center">
@@ -306,7 +342,7 @@ export default function PhoneSimulator() {
                 {callerMobile}
               </div>
               <div className="text-[9px] text-slate-500">
-                Normal Phone (IVR & Voice Activated)
+                Normal Keypad Phone (IVR & Voice Activated)
               </div>
             </div>
 
@@ -335,7 +371,7 @@ export default function PhoneSimulator() {
               { num: '4', sub: 'FERTILIZER' },
               { num: '5', sub: 'DISEASE' },
               { num: '6', sub: 'MARKET' },
-              { num: '7', sub: 'PQRS' },
+              { num: '7', sub: 'SUBSIDY' },
               { num: '8', sub: 'TUV' },
               { num: '9', sub: 'WXYZ' },
               { num: '*', sub: 'STAR' },
@@ -465,7 +501,7 @@ export default function PhoneSimulator() {
             {transcript.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-2">
                 <PhoneCall className="w-8 h-8 text-slate-700 animate-bounce" />
-                <p>Click "Call AgriAI" on the phone simulator to begin live voice interaction.</p>
+                <p>Click "Call AgriAI" on the phone simulator or trigger an outbound call to begin live voice interaction.</p>
               </div>
             ) : (
               transcript.map((t, idx) => (
