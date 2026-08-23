@@ -32,7 +32,7 @@ export async function sendSms(mobile: string, text: string, code?: string) {
       let bodyParams = new URLSearchParams({
         To: formattedMobile,
         From: twilioFrom,
-        Body: `Your OTP for The Farmer's Gamble is ${code || '892104'}. Valid for 5 minutes.`,
+        Body: `Your OTP for The Farmer's Gamble is ${code || '892104'}. Valid for 30 minutes.`,
       })
 
       let res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {

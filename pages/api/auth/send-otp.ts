@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const cleanMobile = mobile.trim()
   const code = generateOtpCode()
   const codeHash = crypto.createHash('sha256').update(code).digest('hex')
-  const expiresAt = new Date(Date.now() + 1000 * 60 * 15) // 15 minutes validity
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 30) // 30 minutes generous validity for farmers
 
   // Find or pre-create user with their original name
   let user = await db.findUserByMobile(cleanMobile)
@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   await db.saveOtp(cleanMobile, codeHash, expiresAt, user.id)
 
   // Dispatch SMS (Sends real SMS via Fast2SMS / Twilio if configured in .env)
-  const smsText = `Your OTP for The Farmer's Gamble is ${code}. Valid for 5 minutes. Do not share this OTP with anyone.`
+  const smsText = `Your OTP for The Farmer's Gamble is ${code}. Valid for 30 minutes. Do not share this OTP with anyone.`
   const smsResult = await sendSms(cleanMobile, smsText, code)
 
   const hasRealSms = smsResult.ok && smsResult.provider !== 'dev-simulator' && smsResult.provider !== 'local-dispatch'

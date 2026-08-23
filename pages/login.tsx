@@ -286,16 +286,16 @@ export default function LoginPage() {
 
             {/* OTP Input Box (Displayed when OTP is sent) */}
             {otpSent && (
-              <div className="space-y-2 pt-2 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 space-y-2">
+              <div className="space-y-3 pt-2 animate-fade-in">
+                <div className="p-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 space-y-2.5">
                   <div className="flex items-center justify-between">
                     <label className="block text-xs font-bold text-emerald-400">
                       Enter Verification Code from SMS
                     </label>
-                    <span className="text-[11px] text-slate-400 font-mono">
+                    <span className="text-[11px] text-emerald-300 font-mono font-semibold">
                       {timer > 0 
-                        ? `Resend in ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')} (Valid for 15 mins)` 
-                        : 'Valid for 15 mins • Can Resend'}
+                        ? `Valid for 30 Mins (Resend in ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` 
+                        : 'Valid for 30 Mins • Ready to Resend'}
                     </span>
                   </div>
                   <div className="relative">
@@ -311,6 +311,14 @@ export default function LoginPage() {
                       className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border-2 border-emerald-500/60 text-white text-base font-mono font-bold tracking-widest focus:border-emerald-400 focus:outline-none text-center"
                       required
                     />
+                  </div>
+
+                  {/* Reassuring note for farmers */}
+                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200 flex items-start gap-2">
+                    <span className="text-emerald-400 mt-0.5">🌾</span>
+                    <p className="leading-snug">
+                      <strong>రైతులకు గమనిక:</strong> ఈ కోడ్ <strong>30 నిమిషాల</strong> పాటు చెల్లుబాటు అవుతుంది. తీరికగా ఎంటర్ చేయవచ్చు. (Valid for 30 full minutes).
+                    </p>
                   </div>
                 </div>
               </div>
