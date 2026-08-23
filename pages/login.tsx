@@ -316,22 +316,34 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  {/* Instant SMS Code Display & 1-Click Autofill */}
+                  {/* Audience-Ready Live Cellular SMS Toast Card */}
                   {devCode && (
-                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-amber-300">🔑 SMS OTP Code:</span>
-                        <span className="font-mono font-black text-sm text-white tracking-widest bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40">
-                          {devCode}
-                        </span>
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border-2 border-emerald-500/40 shadow-lg space-y-2 animate-bounce-short">
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                          <span>💬 Cellular SMS Dispatched to {mobile}</span>
+                        </div>
+                        <span className="text-[10px] font-mono text-slate-500">Just Now</span>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => setOtp(devCode)}
-                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[11px] transition-all"
-                      >
-                        Auto-Fill ↵
-                      </button>
+
+                      <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
+                        <div className="text-xs text-slate-200">
+                          <p className="font-semibold text-slate-300">
+                            Sender: <span className="text-emerald-300 font-bold">FARMER-GOV</span>
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">
+                            Your verification code is <strong className="text-white text-sm font-mono tracking-widest">{devCode}</strong>.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setOtp(devCode)}
+                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs shadow-glow-green active:scale-95 transition-all shrink-0"
+                        >
+                          Tap to Auto-Fill ↵
+                        </button>
+                      </div>
                     </div>
                   )}
 
