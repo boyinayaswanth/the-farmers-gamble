@@ -51,6 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ok: true,
     message: userMessage,
     provider: smsResult.provider,
-    expiresInSeconds: 300,
+    expiresInSeconds: 900,
+    devOtp: isDev ? code : undefined,
   })
 }
