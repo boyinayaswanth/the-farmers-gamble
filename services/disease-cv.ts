@@ -42,6 +42,7 @@ export async function analyzeLeafImage(
   cropName: string = 'Groundnut',
   pixelMetrics?: { greenRatio?: number; brownRatio?: number; yellowRatio?: number; powderRatio?: number }
 ): Promise<DiseaseDiagnosisResult> {
+  const apiKey = process.env.AI_API_KEY || process.env.GEMINI_API_KEY
   
   // 1. If Gemini Vision API Key is present, attempt live Multimodal Vision Diagnosis
   if (apiKey && apiKey.startsWith('AIza') && imageData && imageData.startsWith('data:image/')) {
