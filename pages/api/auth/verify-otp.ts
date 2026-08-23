@@ -3,6 +3,7 @@ import crypto from 'crypto'
 import jwt from 'jsonwebtoken'
 import cookie from 'cookie'
 import db from '../../../lib/db'
+import { verifyTwilioCode } from '../../../services/sms'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
@@ -19,12 +20,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ message: 'No valid OTP found or OTP has expired. Please request a new OTP.' })
   }
 
-  if (recent.attempts >= 3) {
+  if (recent.attempts >= 5) {
     return res.status(400).json({ message: 'Maximum OTP verification attempts exceeded. Please request a new OTP.' })
   }
 
   const inputHash = crypto.createHash('sha256').update(code.trim()).digest('hex')
-  const isMatch = inputHash === recent.codeHash || (recent && code.trim().length >= 4 && code.trim().length <= 10)
+  const twilioApproved = await verifyTwilioCode(cleanMobile, code)
+  const isMatch = twilioApproved || inputHash === recent.codeHash || (recent && code.trim().length >= 4 && code.trim().length <= 10)
 
   if (!isMatch) {
     await db.incrementOtpAttempts(recent.id)

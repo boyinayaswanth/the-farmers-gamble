@@ -1,11 +1,45 @@
 /**
  * Multi-Carrier SMS & OTP Dispatch Gateway
  * Supports Real Delivery to ANY Mobile Number worldwide & across India via:
- * 1. Fast2SMS (Delivers to ANY 10-digit Indian number without pre-verification)
- * 2. 2Factor.in (Indian Telecom DLT OTP Gateway for ANY number)
- * 3. MSG91 (Enterprise SMS Gateway)
- * 4. Twilio SMS (Global Delivery)
+ * 1. Twilio Verify API (Official 2FA Service - Works on trial & full accounts)
+ * 2. Fast2SMS (Delivers to ANY 10-digit Indian number without pre-verification)
+ * 3. 2Factor.in (Indian Telecom DLT OTP Gateway for ANY number)
+ * 4. Twilio Standard SMS (Global Delivery)
  */
+
+export async function verifyTwilioCode(mobile: string, code: string): Promise<boolean> {
+  const twilioSid = process.env.TWILIO_ACCOUNT_SID || process.env.TELEPHONY_ACCOUNT_ID
+  const twilioToken = process.env.TWILIO_AUTH_TOKEN || process.env.TELEPHONY_AUTH_TOKEN
+  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID || 'VA754a06f180fb6ba1bc2165cf226dd7e4'
+
+  if (!twilioSid || !twilioToken || !verifyServiceSid || !twilioSid.startsWith('AC')) return false
+
+  try {
+    const cleanMobile = mobile.replace(/[^\d+]/g, '').trim()
+    const formattedMobile = cleanMobile.startsWith('+') ? cleanMobile : `+91${cleanMobile}`
+    const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64')
+
+    const res = await fetch(`https://verify.twilio.com/v2/Services/${verifyServiceSid}/VerificationCheck`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({
+        To: formattedMobile,
+        Code: code.trim(),
+      }).toString(),
+    })
+
+    const data = await res.json()
+    console.log('[Twilio VerificationCheck Result]:', data)
+    return data.status === 'approved' || data.valid === true
+  } catch (e: any) {
+    console.warn('[Twilio VerificationCheck Error]:', e.message)
+    return false
+  }
+}
+
 export async function sendSms(mobile: string, text: string, code?: string) {
   const cleanMobile = mobile.replace(/[^\d+]/g, '').trim()
   const tenDigitMobile = cleanMobile.replace(/^\+91|^91/, '')
@@ -13,6 +47,7 @@ export async function sendSms(mobile: string, text: string, code?: string) {
   const twilioSid = process.env.TWILIO_ACCOUNT_SID || process.env.TELEPHONY_ACCOUNT_ID
   const twilioToken = process.env.TWILIO_AUTH_TOKEN || process.env.TELEPHONY_AUTH_TOKEN
   const twilioFrom = process.env.TWILIO_PHONE_NUMBER || process.env.TELEPHONY_PHONE_NUMBER
+  const verifyServiceSid = process.env.TWILIO_VERIFY_SERVICE_SID || 'VA754a06f180fb6ba1bc2165cf226dd7e4'
   const fast2SmsKey = process.env.FAST2SMS_API_KEY
   const twoFactorKey = process.env.TWOFACTOR_API_KEY || process.env.FACTOR2_API_KEY
 
@@ -22,7 +57,37 @@ export async function sendSms(mobile: string, text: string, code?: string) {
   console.log(`Cryptographic Generated OTP: ${code}`)
   console.log(`======================================================\n`)
 
-  // 1. FAST2SMS (Direct Indian OTP Route - No recipient verification needed)
+  // 1. TWILIO VERIFY API (Official 2FA Service - Bypasses Trial Template Restrictions)
+  if (twilioSid && twilioToken && verifyServiceSid && twilioSid.startsWith('AC')) {
+    try {
+      const formattedMobile = cleanMobile.startsWith('+') ? cleanMobile : `+91${cleanMobile}`
+      console.log(`[Twilio Verify] Dispatching official 2FA SMS via ${verifyServiceSid} to ${formattedMobile}...`)
+      
+      const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64')
+      
+      const res = await fetch(`https://verify.twilio.com/v2/Services/${verifyServiceSid}/Verifications`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${auth}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+          To: formattedMobile,
+          Channel: 'sms',
+        }).toString(),
+      })
+
+      const data = await res.json()
+      console.log('[Twilio Verify Response]:', data)
+      if (res.ok || data.status === 'pending' || data.status === 'approved') {
+        return { ok: true, provider: 'Twilio Verify', data }
+      }
+    } catch (e: any) {
+      console.warn('[Twilio Verify Error]:', e.message)
+    }
+  }
+
+  // 2. FAST2SMS (Direct Indian OTP Route - No recipient verification needed)
   if (fast2SmsKey && fast2SmsKey.length > 10 && tenDigitMobile.length === 10) {
     try {
       console.log(`[Fast2SMS] Attempting direct SMS dispatch to ${tenDigitMobile}...`)
@@ -37,7 +102,7 @@ export async function sendSms(mobile: string, text: string, code?: string) {
     }
   }
 
-  // 2. 2FACTOR.IN (Direct Indian Telecom Gateway - No recipient verification needed)
+  // 3. 2FACTOR.IN (Direct Indian Telecom Gateway - No recipient verification needed)
   if (twoFactorKey && twoFactorKey.length > 5 && tenDigitMobile.length === 10) {
     try {
       console.log(`[2Factor] Dispatching OTP SMS to ${tenDigitMobile}...`)
@@ -52,11 +117,11 @@ export async function sendSms(mobile: string, text: string, code?: string) {
     }
   }
 
-  // 3. TWILIO SMS (Global Delivery)
+  // 4. TWILIO STANDARD SMS (Global Delivery Fallback)
   if (twilioSid && twilioToken && twilioFrom && twilioSid.startsWith('AC')) {
     try {
       const formattedMobile = cleanMobile.startsWith('+') ? cleanMobile : `+91${cleanMobile}`
-      console.log(`[Twilio] Dispatching real SMS from ${twilioFrom} to ${formattedMobile}...`)
+      console.log(`[Twilio Standard] Dispatching SMS from ${twilioFrom} to ${formattedMobile}...`)
       
       const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64')
       
@@ -76,39 +141,17 @@ export async function sendSms(mobile: string, text: string, code?: string) {
       })
 
       let data = await res.json()
-      console.log('[Twilio Attempt 1 Response]:', data)
-
-      // If trial account requires template name (Error 572006)
-      if (!res.ok && data.code === 572006) {
-        console.log('[Twilio] Using trial pre-approved template for international delivery...')
-        bodyParams = new URLSearchParams({
-          To: formattedMobile,
-          From: twilioFrom,
-          Body: 'sms_appointment_reminders',
-        })
-
-        res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: bodyParams.toString(),
-        })
-
-        data = await res.json()
-        console.log('[Twilio Template Response]:', data)
-      }
+      console.log('[Twilio Standard Response]:', data)
 
       if (res.ok || data.status === 'queued' || data.status === 'sent') {
-        return { ok: true, provider: 'Twilio', data }
+        return { ok: true, provider: 'Twilio SMS', data }
       }
     } catch (e: any) {
-      console.error('[Twilio Gateway Error]:', e.message)
+      console.error('[Twilio SMS Error]:', e.message)
     }
   }
 
-  // 4. Guaranteed Local & In-App Instant Delivery
+  // 5. Guaranteed Local & In-App Instant Delivery
   return {
     ok: true,
     provider: 'local-dispatch',
