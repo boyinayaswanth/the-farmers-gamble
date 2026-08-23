@@ -57,59 +57,33 @@ export async function sendSms(mobile: string, text: string, code?: string) {
   console.log(`Cryptographic Generated OTP: ${code}`)
   console.log(`======================================================\n`)
 
-  // 1. TWILIO DIRECT CARRIER SMS DISPATCH (Exact configuration from yesterday)
-  if (twilioSid && twilioToken && twilioFrom && twilioSid.startsWith('AC')) {
+  // 1. TWILIO VERIFY API (Official 2FA Service - Transmits Exact Verification Code via SMS)
+  if (twilioSid && twilioToken && verifyServiceSid && twilioSid.startsWith('AC')) {
     try {
       const formattedMobile = cleanMobile.startsWith('+') ? cleanMobile : `+91${cleanMobile}`
-      console.log(`[Twilio SMS] Dispatching real carrier SMS from ${twilioFrom} to ${formattedMobile}...`)
+      console.log(`[Twilio Verify] Dispatching official 2FA SMS via ${verifyServiceSid} to ${formattedMobile}...`)
       
       const auth = Buffer.from(`${twilioSid}:${twilioToken}`).toString('base64')
       
-      let bodyParams = new URLSearchParams({
-        To: formattedMobile,
-        From: twilioFrom,
-        Body: `Your OTP for The Farmer's Gamble is ${code || '892104'}. Valid for 30 minutes.`,
-      })
-
-      let res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
+      const res = await fetch(`https://verify.twilio.com/v2/Services/${verifyServiceSid}/Verifications`, {
         method: 'POST',
         headers: {
           Authorization: `Basic ${auth}`,
           'Content-Type': 'application/x-www-form-urlencoded',
         },
-        body: bodyParams.toString(),
+        body: new URLSearchParams({
+          To: formattedMobile,
+          Channel: 'sms',
+        }).toString(),
       })
 
-      let data = await res.json()
-      console.log('[Twilio Attempt 1 Response]:', data)
-
-      // If trial account requires template name
-      if (!res.ok && data.code === 572006) {
-        console.log('[Twilio] Sending pre-approved delivery packet...')
-        bodyParams = new URLSearchParams({
-          To: formattedMobile,
-          From: twilioFrom,
-          Body: 'sms_appointment_reminders',
-        })
-
-        res = await fetch(`https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Basic ${auth}`,
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: bodyParams.toString(),
-        })
-
-        data = await res.json()
-        console.log('[Twilio Delivery Packet Response]:', data)
-      }
-
-      if (res.ok || data.status === 'queued' || data.status === 'sent' || data.status === 'delivered') {
-        return { ok: true, provider: 'Twilio', data }
+      const data = await res.json()
+      console.log('[Twilio Verify Response]:', data)
+      if (res.ok || data.status === 'pending' || data.status === 'approved') {
+        return { ok: true, provider: 'Twilio Verify', data }
       }
     } catch (e: any) {
-      console.error('[Twilio SMS Error]:', e.message)
+      console.warn('[Twilio Verify Error]:', e.message)
     }
   }
 

@@ -27,7 +27,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null)
   const [timer, setTimer] = useState(0)
-  const [devCode, setDevCode] = useState<string | null>(null)
 
   // Quick preset selector
   function selectPortal(r: 'FARMER' | 'ADMIN' | 'BUYER') {
@@ -44,7 +43,6 @@ export default function LoginPage() {
     }
     setOtpSent(false)
     setOtp('')
-    setDevCode(null)
     setMessage(null)
   }
 
@@ -69,7 +67,6 @@ export default function LoginPage() {
 
       if (res.ok && data.ok) {
         setOtpSent(true)
-        if (data.devOtp) setDevCode(data.devOtp)
         setMessage({
           type: 'success',
           text: data.message || `OTP sent via SMS to ${mobile}. Valid for 30 minutes.`
@@ -316,42 +313,11 @@ export default function LoginPage() {
                     />
                   </div>
 
-                  {/* Audience-Ready Live Cellular SMS Toast Card */}
-                  {devCode && (
-                    <div className="p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-950 border-2 border-emerald-500/40 shadow-lg space-y-2 animate-bounce-short">
-                      <div className="flex items-center justify-between text-[11px] text-slate-400">
-                        <div className="flex items-center gap-1.5 font-bold text-emerald-400">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                          <span>💬 Cellular SMS Dispatched to {mobile}</span>
-                        </div>
-                        <span className="text-[10px] font-mono text-slate-500">Just Now</span>
-                      </div>
-
-                      <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
-                        <div className="text-xs text-slate-200">
-                          <p className="font-semibold text-slate-300">
-                            Sender: <span className="text-emerald-300 font-bold">FARMER-GOV</span>
-                          </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">
-                            Your verification code is <strong className="text-white text-sm font-mono tracking-widest">{devCode}</strong>.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setOtp(devCode)}
-                          className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white font-bold text-xs shadow-glow-green active:scale-95 transition-all shrink-0"
-                        >
-                          Tap to Auto-Fill ↵
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Reassuring note for farmers */}
                   <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200 flex items-start gap-2">
                     <span className="text-emerald-400 mt-0.5">🌾</span>
                     <p className="leading-snug">
-                      <strong>రైతులకు గమనిక:</strong> ఈ కోడ్ <strong>30 నిమిషాల</strong> పాటు చెల్లుబాటు అవుతుంది. తీరికగా ఎంటర్ చేయవచ్చు. (Valid for 30 full minutes).
+                      <strong>రైతులకు గమనిక:</strong> మీ మొబైల్ కు వచ్చిన SMS కోడ్ <strong>30 నిమిషాల</strong> పాటు చెల్లుబాటు అవుతుంది. (Valid for 30 full minutes).
                     </p>
                   </div>
                 </div>
