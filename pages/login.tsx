@@ -5,7 +5,6 @@ import {
   ShieldCheck, 
   Smartphone, 
   User, 
-  KeyRound, 
   ArrowRight, 
   CheckCircle2, 
   AlertCircle, 
@@ -22,11 +21,8 @@ export default function LoginPage() {
   const [mobile, setMobile] = useState('+91 8555864859')
   const [name, setName] = useState('Yaswanth')
   const [role, setRole] = useState<'FARMER' | 'ADMIN' | 'BUYER'>('FARMER')
-  const [otp, setOtp] = useState('')
-  const [otpSent, setOtpSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null)
-  const [timer, setTimer] = useState(0)
 
   // Quick preset selector
   function selectPortal(r: 'FARMER' | 'ADMIN' | 'BUYER') {
@@ -41,72 +37,21 @@ export default function LoginPage() {
       setName('Sri Venkateswara Agro Commodities')
       setMobile('+91 91234 56789')
     }
-    setOtpSent(false)
-    setOtp('')
     setMessage(null)
   }
 
-  // Handle Send OTP
-  async function handleSendOtp(e: React.FormEvent) {
+  // Handle Direct Instant Login
+  async function handleDirectLogin(e: React.FormEvent) {
     e.preventDefault()
     setMessage(null)
     setLoading(true)
 
     try {
-      const res = await fetch('/api/auth/send-otp', {
+      const res = await fetch('/api/auth/direct-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           mobile,
-          name: name.trim() || (role === 'ADMIN' ? 'Gram Panchayat Officer' : role === 'BUYER' ? 'Agro Buyer' : 'Yaswanth'),
-          role
-        })
-      })
-
-      const data = await res.json()
-
-      if (res.ok && data.ok) {
-        setOtpSent(true)
-        setMessage({
-          type: 'success',
-          text: data.message || `OTP sent via SMS to ${mobile}. Valid for 30 minutes.`
-        })
-        setTimer(180) // 3 full minutes countdown
-        const interval = setInterval(() => {
-          setTimer((prev) => {
-            if (prev <= 1) {
-              clearInterval(interval)
-              return 0
-            }
-            return prev - 1
-          })
-        }, 1000)
-      } else {
-        setMessage({
-          type: 'error',
-          text: data.message || 'Failed to dispatch OTP. Please check your mobile number.'
-        })
-      }
-    } catch (err: any) {
-      setMessage({ type: 'error', text: 'Network error connecting to SMS Gateway' })
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Handle Verify OTP
-  async function handleVerifyOtp(e: React.FormEvent) {
-    e.preventDefault()
-    setMessage(null)
-    setLoading(true)
-
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          mobile,
-          code: otp.trim(),
           name: name.trim(),
           role
         })
@@ -119,7 +64,7 @@ export default function LoginPage() {
           localStorage.setItem('tfg_user', JSON.stringify(data.user))
           window.dispatchEvent(new Event('auth-changed'))
         }
-        setMessage({ type: 'success', text: 'Authentication successful! Loading dashboard...' })
+        setMessage({ type: 'success', text: `Welcome ${data.user?.name || ''}! Loading dashboard...` })
         setTimeout(() => {
           if (role === 'ADMIN') {
             router.push('/admin')
@@ -128,15 +73,15 @@ export default function LoginPage() {
           } else {
             router.push('/dashboard')
           }
-        }, 400)
+        }, 300)
       } else {
         setMessage({
           type: 'error',
-          text: data.message || 'Invalid verification code. Please check your phone SMS.'
+          text: data.message || 'Login failed. Please check your mobile number.'
         })
       }
     } catch (err: any) {
-      setMessage({ type: 'error', text: 'Verification error' })
+      setMessage({ type: 'error', text: 'Network connection error during sign-in.' })
     } finally {
       setLoading(false)
     }
@@ -158,96 +103,82 @@ export default function LoginPage() {
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto border border-emerald-500/40 shadow-glow-green">
               <ShieldCheck className="w-6 h-6" />
             </div>
-            <h2 className="font-heading font-black text-2xl text-white">
-              Two-Way Agricultural Portal
-            </h2>
-            <p className="text-xs text-slate-400">
-              Select your role: Gram Panchayat (Information Provider) or Farmer (Information Consumer).
+            <h1 className="font-heading font-black text-2xl text-white">
+              Sign In to The Farmer's Gamble
+            </h1>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              Direct mobile authentication for Farmers, Gram Panchayat Officers, and Wholesale Buyers.
             </p>
           </div>
 
-          {/* Primary 2-Portal Switcher Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            
-            {/* 1. Farmer Portal */}
-            <button
-              type="button"
-              onClick={() => selectPortal('FARMER')}
-              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden ${
-                role === 'FARMER'
-                  ? 'bg-emerald-950/80 border-emerald-500 shadow-glow-green text-white'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                  role === 'FARMER' ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-400'
-                }`}>
-                  <Sprout className="w-4 h-4" />
+          {/* Role Portal Switcher */}
+          <div className="space-y-2">
+            <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider text-center">
+              Select Your Access Portal
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              
+              {/* Option 1: Farmer */}
+              <button
+                type="button"
+                onClick={() => selectPortal('FARMER')}
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                  role === 'FARMER'
+                    ? 'bg-emerald-950/80 border-emerald-500 text-emerald-300 shadow-glow-green'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-xl bg-emerald-500/20 flex items-center justify-center">
+                  <Sprout className="w-4 h-4 text-emerald-400" />
                 </div>
-                {role === 'FARMER' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/30 text-emerald-300 font-bold">
-                    Selected
-                  </span>
-                )}
-              </div>
-              <div className="font-heading font-black text-sm text-white">1. Farmer Portal</div>
-              <div className="text-[11px] text-slate-400 mt-1 leading-snug">
-                Reads AI crop advice, APMC mandi rates, fertilizer dosage, and receives voice phone calls.
-              </div>
-            </button>
+                <div className="text-xs font-bold">Farmer Portal</div>
+                <div className="text-[10px] text-slate-500">రైతు ప్రవేశం</div>
+              </button>
 
-            {/* 2. Gram Panchayat Admin Portal */}
-            <button
-              type="button"
-              onClick={() => selectPortal('ADMIN')}
-              className={`p-4 rounded-2xl border text-left transition-all relative overflow-hidden ${
-                role === 'ADMIN'
-                  ? 'bg-amber-950/80 border-amber-500 shadow-glow-gold text-white'
-                  : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${
-                  role === 'ADMIN' ? 'bg-amber-500 text-slate-950' : 'bg-slate-800 text-slate-400'
-                }`}>
-                  <Landmark className="w-4 h-4" />
+              {/* Option 2: Gram Panchayat Admin */}
+              <button
+                type="button"
+                onClick={() => selectPortal('ADMIN')}
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                  role === 'ADMIN'
+                    ? 'bg-amber-950/80 border-amber-500 text-amber-300 shadow-glow-amber'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-xl bg-amber-500/20 flex items-center justify-center">
+                  <Landmark className="w-4 h-4 text-amber-400" />
                 </div>
-                {role === 'ADMIN' && (
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-300 font-bold">
-                    Selected
-                  </span>
-                )}
-              </div>
-              <div className="font-heading font-black text-sm text-white">2. Gram Panchayat Portal</div>
-              <div className="text-[11px] text-slate-400 mt-1 leading-snug">
-                Broadcasts village notices, manages govt subsidy schemes, and updates APMC floor prices.
-              </div>
-            </button>
+                <div className="text-xs font-bold">Panchayat Admin</div>
+                <div className="text-[10px] text-slate-500">గ్రామ అధికారి</div>
+              </button>
 
+              {/* Option 3: Buyer */}
+              <button
+                type="button"
+                onClick={() => selectPortal('BUYER')}
+                className={`p-3 rounded-2xl border text-center transition-all flex flex-col items-center gap-1.5 ${
+                  role === 'BUYER'
+                    ? 'bg-blue-950/80 border-blue-500 text-blue-300 shadow-glow-blue'
+                    : 'bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white'
+                }`}
+              >
+                <div className="w-7 h-7 rounded-xl bg-blue-500/20 flex items-center justify-center">
+                  <ShoppingBag className="w-4 h-4 text-blue-400" />
+                </div>
+                <div className="text-xs font-bold">Agro Buyer</div>
+                <div className="text-[10px] text-slate-500">వ్యాపారి ప్రవేశం</div>
+              </button>
+
+            </div>
           </div>
 
-          {/* Quick Buyer link at bottom of selector */}
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => selectPortal('BUYER')}
-              className={`text-xs font-semibold inline-flex items-center gap-1 transition-all ${
-                role === 'BUYER' ? 'text-indigo-400 underline font-bold' : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <ShoppingBag className="w-3.5 h-3.5" />
-              <span>Wholesale Mandi Buyer / Trader Login &rarr;</span>
-            </button>
-          </div>
-
-          {/* Form */}
-          <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp} className="space-y-4 relative">
+          {/* Direct Login Form */}
+          <form onSubmit={handleDirectLogin} className="space-y-4">
             
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                {role === 'ADMIN' ? 'Officer / Office Name' : role === 'BUYER' ? 'Business / Trader Name' : 'Farmer Full Name'}
+            {/* Name Input */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-300">
+                Your Full Name
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -257,17 +188,17 @@ export default function LoginPage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Yaswanth"
+                  placeholder="Enter your name"
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs font-semibold focus:border-emerald-500 focus:outline-none"
                   required
                 />
               </div>
             </div>
 
-            {/* Mobile Number */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
-                10-Digit Mobile Number
+            {/* Mobile Number Input */}
+            <div className="space-y-1">
+              <label className="block text-xs font-semibold text-slate-300">
+                Mobile Number
               </label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
@@ -283,46 +214,6 @@ export default function LoginPage() {
                 />
               </div>
             </div>
-
-            {/* OTP Input Box (Displayed when OTP is sent) */}
-            {otpSent && (
-              <div className="space-y-3 pt-2 animate-fade-in">
-                <div className="p-4 rounded-2xl bg-slate-950 border-2 border-emerald-500/40 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="block text-xs font-bold text-emerald-400">
-                      Enter Verification Code from SMS
-                    </label>
-                    <span className="text-[11px] text-emerald-300 font-mono font-semibold">
-                      {timer > 0 
-                        ? `Valid for 30 Mins (Resend in ${Math.floor(timer / 60)}:${(timer % 60).toString().padStart(2, '0')})` 
-                        : 'Valid for 30 Mins • Ready to Resend'}
-                    </span>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                      <KeyRound className="w-4 h-4" />
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={10}
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="Enter OTP Code"
-                      className="w-full pl-10 pr-4 py-3 rounded-xl bg-slate-950 border-2 border-emerald-500/60 text-white text-base font-mono font-bold tracking-widest focus:border-emerald-400 focus:outline-none text-center"
-                      required
-                    />
-                  </div>
-
-                  {/* Reassuring note for farmers */}
-                  <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200 flex items-start gap-2">
-                    <span className="text-emerald-400 mt-0.5">🌾</span>
-                    <p className="leading-snug">
-                      <strong>రైతులకు గమనిక:</strong> మీ మొబైల్ కు వచ్చిన SMS కోడ్ <strong>30 నిమిషాల</strong> పాటు చెల్లుబాటు అవుతుంది. (Valid for 30 full minutes).
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* Notification Messages */}
             {message && (
@@ -344,52 +235,68 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Action Buttons */}
-            <div className="pt-2">
-              {!otpSent ? (
-                <button
-                  type="submit"
-                  disabled={loading || !mobile}
-                  className={`w-full py-3 rounded-xl text-white font-bold text-xs shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
-                    role === 'ADMIN'
-                      ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black'
-                      : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  <span>{loading ? 'Generating & Sending...' : `Send OTP Code (${role === 'ADMIN' ? 'Admin Portal' : 'Farmer Portal'})`}</span>
-                </button>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full py-3 rounded-xl font-heading font-black text-sm transition-all shadow-lg flex items-center justify-center gap-2 active:scale-98 ${
+                role === 'ADMIN'
+                  ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-white shadow-glow-amber'
+                  : role === 'BUYER'
+                  ? 'bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white shadow-glow-blue'
+                  : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400 text-white shadow-glow-green'
+              }`}
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Authenticating...</span>
+                </>
               ) : (
-                <div className="space-y-2">
-                  <button
-                    type="submit"
-                    disabled={loading || otp.length < 4}
-                    className={`w-full py-3 rounded-xl text-white font-bold text-xs shadow-md active:scale-98 transition-all flex items-center justify-center gap-2 disabled:opacity-50 ${
-                      role === 'ADMIN'
-                        ? 'bg-gradient-to-r from-amber-600 to-amber-500 hover:from-amber-500 hover:to-amber-400 text-slate-950 font-black'
-                        : 'bg-gradient-to-r from-emerald-600 to-emerald-500 hover:from-emerald-500 hover:to-emerald-400'
-                    }`}
-                  >
-                    <CheckCircle2 className="w-4 h-4" />
-                    <span>{loading ? 'Verifying...' : `Verify OTP & Enter ${role === 'ADMIN' ? 'Gram Panchayat Command Center' : 'Farmer Dashboard'}`}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOtpSent(false)
-                      setOtp('')
-                      setMessage(null)
-                    }}
-                    className="w-full py-2 rounded-xl text-slate-400 hover:text-white text-xs font-semibold transition-colors"
-                  >
-                    &larr; Change Mobile Number or Role
-                  </button>
-                </div>
+                <>
+                  <span>
+                    {role === 'ADMIN' 
+                      ? 'Sign In to Gram Panchayat Command Center' 
+                      : role === 'BUYER'
+                      ? 'Sign In to Farmgate Wholesale Portal'
+                      : 'Sign In to Farmer Dashboard'}
+                  </span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
-            </div>
+            </button>
 
           </form>
+
+          {/* Quick Demo Presets */}
+          <div className="pt-4 border-t border-slate-800 space-y-2">
+            <span className="text-[11px] text-slate-400 block text-center">
+              1-Click Quick Demo Switcher:
+            </span>
+            <div className="flex items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => selectPortal('FARMER')}
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-emerald-400 font-semibold hover:border-emerald-500/40"
+              >
+                👨‍🌾 Yaswanth (+91 8555864859)
+              </button>
+              <button
+                type="button"
+                onClick={() => selectPortal('ADMIN')}
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-amber-400 font-semibold hover:border-amber-500/40"
+              >
+                🏛️ Panchayat Officer
+              </button>
+              <button
+                type="button"
+                onClick={() => selectPortal('BUYER')}
+                className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-950 border border-slate-800 text-blue-400 font-semibold hover:border-blue-500/40"
+              >
+                🛒 Wholesale Buyer
+              </button>
+            </div>
+          </div>
 
         </div>
 

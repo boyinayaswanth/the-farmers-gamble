@@ -16,7 +16,8 @@ import {
   X, 
   ShieldCheck, 
   Globe2,
-  Sparkles
+  Sparkles,
+  Landmark
 } from 'lucide-react'
 
 interface NavbarProps {
@@ -27,14 +28,14 @@ interface NavbarProps {
 export default function Navbar({ user, unreadCount = 0 }: NavbarProps) {
   const router = useRouter()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [language, setLanguage] = useState<'en' | 'te'>('en')
+  const [language, setLanguage] = useState<string>('en')
   const [notifOpen, setNotifOpen] = useState(false)
   const [notifications, setNotifications] = useState<any[]>([])
 
   useEffect(() => {
     // Check saved language
-    const savedLang = localStorage.getItem('tfg_lang') as 'en' | 'te'
-    if (savedLang) setLanguage(savedLang)
+    const savedLang = localStorage.getItem('tfg_lang') || 'en'
+    setLanguage(savedLang)
 
     // Fetch notifications if logged in
     async function loadNotifs() {
@@ -73,10 +74,9 @@ export default function Navbar({ user, unreadCount = 0 }: NavbarProps) {
     loadNotifs()
   }, [])
 
-  const toggleLanguage = () => {
-    const nextLang = language === 'en' ? 'te' : 'en'
-    setLanguage(nextLang)
-    localStorage.setItem('tfg_lang', nextLang)
+  const handleLanguageChange = (newLang: string) => {
+    setLanguage(newLang)
+    localStorage.setItem('tfg_lang', newLang)
     window.dispatchEvent(new Event('storage'))
   }
 
@@ -91,13 +91,14 @@ export default function Navbar({ user, unreadCount = 0 }: NavbarProps) {
 
   const navLinks = [
     { href: '/dashboard', label: language === 'te' ? 'డాష్‌బోర్డ్' : 'Dashboard', icon: Sprout },
-    { href: '/crop-recommendation', label: language === 'te' ? 'పంట సలహా' : 'AI Crop Advisor', icon: Sparkles },
+    { href: '/crop-recommendation', label: language === 'te' ? 'పంట సలహా' : 'Crop AI', icon: Sparkles },
     { href: '/fertilizer', label: language === 'te' ? 'ఎరువులు' : 'Fertilizer', icon: FlaskConical },
-    { href: '/market', label: language === 'te' ? 'మార్కెట్ ధరలు' : 'Market Intelligence', icon: BarChart3 },
+    { href: '/schemes', label: language === 'te' ? 'పథకాలు' : 'Govt Schemes', icon: Landmark },
+    { href: '/market', label: language === 'te' ? 'మార్కెట్' : 'Market Intelligence', icon: BarChart3 },
     { href: '/plant-doctor', label: language === 'te' ? 'తెగుళ్ల డాక్టర్' : 'Plant Doctor', icon: Bug },
-    { href: '/voice-assistant', label: language === 'te' ? 'వాయిస్ AI' : 'Voice AI (Phone)', icon: PhoneCall, highlight: true },
+    { href: '/voice-assistant', label: language === 'te' ? 'వాయిస్ AI' : 'Voice Hotline', icon: PhoneCall, highlight: true },
     { href: '/marketplace', label: language === 'te' ? 'మార్కెట్‌ప్లేస్' : 'Marketplace', icon: ShoppingBag },
-    { href: '/ai-chat', label: language === 'te' ? 'AgriAI చాట్' : 'AgriAI', icon: Bot },
+    { href: '/ai-chat', label: language === 'te' ? 'AI చాట్' : 'AgriAI Chat', icon: Bot },
   ]
 
   const isActive = (path: string) => router.pathname === path
@@ -155,14 +156,21 @@ export default function Navbar({ user, unreadCount = 0 }: NavbarProps) {
           {/* Right Action Icons */}
           <div className="flex items-center gap-3">
             {/* Language Switcher */}
-            <button
-              onClick={toggleLanguage}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 border border-slate-700 text-slate-200 hover:border-emerald-500/40 transition-colors"
-              title="Toggle Language (English / తెలుగు)"
-            >
-              <Globe2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{language === 'en' ? 'తెలుగు' : 'English'}</span>
-            </button>
+            <div className="relative">
+              <select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-700 text-emerald-300 focus:border-emerald-500 focus:outline-none cursor-pointer"
+                aria-label="Select Language"
+              >
+                <option value="en">🌐 English</option>
+                <option value="te">🌐 తెలుగు (Telugu)</option>
+                <option value="hi">🌐 हिंदी (Hindi)</option>
+                <option value="ta">🌐 தமிழ் (Tamil)</option>
+                <option value="kn">🌐 ಕನ್ನಡ (Kannada)</option>
+                <option value="mr">🌐 मराठी (Marathi)</option>
+              </select>
+            </div>
 
             {/* Notification Bell */}
             <div className="relative">

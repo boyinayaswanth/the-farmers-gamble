@@ -3,6 +3,8 @@ import Link from 'next/link'
 import Layout from '../components/Layout'
 import WeatherWidget from '../components/WeatherWidget'
 import MarketTicker from '../components/MarketTicker'
+import PlantingWindow from '../components/PlantingWindow'
+import RiskMatrix from '../components/RiskMatrix'
 import { 
   Sprout, 
   Sparkles, 
@@ -342,6 +344,19 @@ export default function Dashboard() {
           </Link>
 
         </div>
+
+        {/* AI Sowing Window & Phenology Timeline */}
+        <PlantingWindow 
+          crop={profile.currentCrop || 'Groundnut'} 
+          soilType={profile.soilType || 'Red Sandy Loam'} 
+          district={profile.district || 'Anantapur'} 
+        />
+
+        {/* Farm Risk Intelligence Matrix */}
+        <RiskMatrix 
+          district={profile.district || 'Anantapur'} 
+          crop={profile.currentCrop || 'Groundnut'} 
+        />
 
         {/* GOVERNMENT SUBSIDY & BENEFIT SCHEMES HUB */}
         <div className="rounded-3xl bg-slate-900/90 border border-slate-800 p-6 sm:p-8 shadow-2xl space-y-6">

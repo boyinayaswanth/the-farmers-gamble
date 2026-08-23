@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import MarketTicker from '../components/MarketTicker'
@@ -19,12 +19,97 @@ import {
   Phone,
   Layers,
   Award,
-  Zap
+  Zap,
+  Landmark,
+  Calendar
 } from 'lucide-react'
 
 export default function Home() {
   const [selectedCropCalc, setSelectedCropCalc] = useState('Groundnut')
   const [acresCalc, setAcresCalc] = useState(3)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+
+    let animationFrameId: number
+    let width = (canvas.width = canvas.parentElement?.clientWidth || window.innerWidth)
+    let height = (canvas.height = canvas.parentElement?.clientHeight || 600)
+
+    const particles: { x: number; y: number; vx: number; vy: number; radius: number; color: string }[] = []
+    const particleCount = 45
+
+    for (let i = 0; i < particleCount; i++) {
+      particles.push({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.6,
+        vy: (Math.random() - 0.5) * 0.6,
+        radius: Math.random() * 2.5 + 1.2,
+        color: Math.random() > 0.4 ? '#10b981' : '#f59e0b'
+      })
+    }
+
+    function render() {
+      if (!ctx || !canvas) return
+      ctx.clearRect(0, 0, width, height)
+
+      // Draw connections
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x
+          const dy = particles[i].y - particles[j].y
+          const dist = Math.sqrt(dx * dx + dy * dy)
+
+          if (dist < 130) {
+            ctx.beginPath()
+            ctx.strokeStyle = `rgba(16, 185, 129, ${0.25 * (1 - dist / 130)})`
+            ctx.lineWidth = 0.8
+            ctx.moveTo(particles[i].x, particles[i].y)
+            ctx.lineTo(particles[j].x, particles[j].y)
+            ctx.stroke()
+          }
+        }
+      }
+
+      // Draw particles
+      for (const p of particles) {
+        ctx.beginPath()
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2)
+        ctx.fillStyle = p.color
+        ctx.shadowBlur = 8
+        ctx.shadowColor = p.color
+        ctx.fill()
+        ctx.shadowBlur = 0
+
+        p.x += p.vx
+        p.y += p.vy
+
+        if (p.x < 0 || p.x > width) p.vx *= -1
+        if (p.y < 0 || p.y > height) p.vy *= -1
+      }
+
+      animationFrameId = requestAnimationFrame(render)
+    }
+
+    render()
+
+    const handleResize = () => {
+      if (!canvas) return
+      width = canvas.width = canvas.parentElement?.clientWidth || window.innerWidth
+      height = canvas.height = canvas.parentElement?.clientHeight || 600
+    }
+
+    window.addEventListener('resize', handleResize)
+
+    return () => {
+      cancelAnimationFrame(animationFrameId)
+      window.removeEventListener('resize', handleResize)
+    }
+  }, [])
 
   const cropRoiData: { [key: string]: { yieldPerAcre: number; price: number; cost: number } } = {
     'Groundnut': { yieldPerAcre: 980, price: 86.5, cost: 18500 },
@@ -46,7 +131,13 @@ export default function Home() {
 
       {/* Hero Section */}
       <section className="relative pt-6 pb-16 text-center lg:text-left overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        {/* Animated Constellation Grid Canvas */}
+        <canvas 
+          ref={canvasRef} 
+          className="absolute inset-0 pointer-events-none z-0 opacity-40" 
+        />
+
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           {/* Hero Left Column */}
           <div className="lg:col-span-7 space-y-6">
