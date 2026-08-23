@@ -27,6 +27,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success' | 'info'; text: string } | null>(null)
   const [timer, setTimer] = useState(0)
+  const [devCode, setDevCode] = useState<string | null>(null)
 
   // Quick preset selector
   function selectPortal(r: 'FARMER' | 'ADMIN' | 'BUYER') {
@@ -43,6 +44,7 @@ export default function LoginPage() {
     }
     setOtpSent(false)
     setOtp('')
+    setDevCode(null)
     setMessage(null)
   }
 
@@ -67,9 +69,10 @@ export default function LoginPage() {
 
       if (res.ok && data.ok) {
         setOtpSent(true)
+        if (data.devOtp) setDevCode(data.devOtp)
         setMessage({
           type: 'success',
-          text: data.message || `OTP sent via SMS to ${mobile}. Valid for 15 minutes.`
+          text: data.message || `OTP sent via SMS to ${mobile}. Valid for 30 minutes.`
         })
         setTimer(180) // 3 full minutes countdown
         const interval = setInterval(() => {
@@ -312,6 +315,25 @@ export default function LoginPage() {
                       required
                     />
                   </div>
+
+                  {/* Instant SMS Code Display & 1-Click Autofill */}
+                  {devCode && (
+                    <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-between text-xs text-amber-200">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-amber-300">🔑 SMS OTP Code:</span>
+                        <span className="font-mono font-black text-sm text-white tracking-widest bg-slate-900 px-2 py-0.5 rounded border border-amber-500/40">
+                          {devCode}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setOtp(devCode)}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 font-bold text-[11px] transition-all"
+                      >
+                        Auto-Fill ↵
+                      </button>
+                    </div>
+                  )}
 
                   {/* Reassuring note for farmers */}
                   <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/20 text-[11px] text-emerald-200 flex items-start gap-2">
